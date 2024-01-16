@@ -27,16 +27,16 @@ The scripts here provides customer a way to scan their cloud objects in AWS and 
 
 ### Requirements  
 
-Customer should set their aws account to be used.
-Run below command
+Customer should have all AWS account information in .aws/config and .aws/credentials, as required to run aws cofigure.
 
 ```
-aws configure
+export AWS_CONFIG_PATH=~./aws
 ```
 
-For Azure, you will also need to set :
+For using Azure script, please login to your Azure account:
 
 ```
+az login
 ```
 
 ## Usage  

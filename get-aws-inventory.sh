@@ -1,14 +1,11 @@
 #!/bin/bash
-# to run, pre-req is to run "aws configure" with user's AWS API keys
-# then just type ./get-aws-inventory.sh 
+# To run, pre-req is to export an environment variable AWS_CONFIG_PATH, with location to .aws directory containing credentials and config file.
+# This script will run "aws configure" with user's AWS API keys for all profiles mentioned in '.aws/config' file.
+# To run just type ./get-aws-inventory.sh 
 # -----------------------------------------------------------------------------
 # current inventory list is limited to EC2, RDS, EKS clusters, lambda functions.
 # for more capability, add aws cli commands for the desired resource
 # commented out kubectl commands as additional kubeconfig steps are required
-
-
-# List all AWS regions using AWS CLI
-regions=$(aws ec2 describe-regions --output json | jq -r '.Regions[].RegionName')
 
 # Initialize counters
 total_ec2=0
@@ -18,6 +15,22 @@ total_eks_clusters=0
 total_fargate_count=0
 total_pods=0
 total_nodes=0
+# Read aws profiles and run 'aws configure'
+
+profiles=$(awk -F 'profile ' '/\[profile/ {print $2}' $AWS_CONFIG_PATH/config | cut -d']' -f1)
+for profile in $profiles; do
+    echo "***********************"
+    echo "Profile: $profile"
+    echo "***********************"
+    export AWS_PROFILE=$profile
+    # Get access keys from $AWS_CONFIG_PATH/credentials file
+    aws_access_key_id=$(awk -v profile="$profile" -F ' = ' '$1 == "aws_access_key_id" && found {print $2; exit} $1 == "[" profile "]" {found=1}' $AWS_CONFIG_PATH/credentials)
+    aws_secret_access_key=$(awk -v profile="$profile" -F ' = ' '$1 == "aws_secret_access_key" && found {print $2; exit} $1 == "[" profile "]" {found=1}' $AWS_CONFIG_PATH/credentials)
+    aws configure --profile $profile set aws_access_key_id $aws_access_key_id
+    aws configure --profile $profile set aws_secret_access_key $aws_secret_access_key 
+
+# List all AWS regions using AWS CLI
+regions=$(aws ec2 describe-regions --output json | jq -r '.Regions[].RegionName')
 
 # Iterate through each region
 for region in $regions; do
@@ -26,24 +39,24 @@ for region in $regions; do
     # List EC2 instances and count
     ec2_count=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].InstanceType' --output text --region $region | wc -w)
     total_ec2=$((total_ec2 + ec2_count))
-    echo "Virtual Machines: $ec2_count"
-
+    #echo "Virtual Machines:\t\t$ec2_count"
+    printf "Virtual Machines:\t\t$ec2_count\n"
     # List RDS instances and count
     rds_count=$(aws rds describe-db-instances --query 'DBInstances[].DBInstanceIdentifier' --output text --region $region | wc -w)
     total_rds=$((total_rds + rds_count))
-    echo "Cloud Databases: $rds_count"
+    printf "Cloud Databases:\t\t$rds_count\n"
 
     # List Lambda functions and count
     lambda_count=$(aws lambda list-functions --query 'Functions[].FunctionName' --output text --region $region | wc -w)
     total_lambda=$((total_lambda + lambda_count))
-    echo "Serverless Functions: $lambda_count"
+    printf "Serverless Functions:\t\t$lambda_count\n"
 
     # List EKS clusters and count
     eks_clusters=$(aws eks list-clusters --output json --region $region | jq -r '.clusters[]')
     eks_cluster_count=0
     eks_pod_count=0
     eks_node_count=0
-
+    fargate_count=0
     for eks_cluster in $eks_clusters; do
 	#List Fargates
         fargate_count=$(aws eks list-fargate-profiles --cluster-name $eks_cluster --output text --query 'fargateProfileNames' --region $region | wc -w)
@@ -55,11 +68,11 @@ for region in $regions; do
     total_pods=$((total_pods + eks_pod_count))
     total_nodes=$((total_nodes + eks_node_count))
 
-    echo "Container Hosts: $eks_cluster_count"
-    echo "Serverless Containers: $fargate_count"
+    printf "Container Hosts:\t\t\t$eks_cluster_count\n"
+    printf "Serverless Containers:\t\t\t$fargate_count\n"
     echo "-----------------------"
 done
-
+done
 # Display summary
 echo "Summary Across All Regions:"
 echo "-----------------------"

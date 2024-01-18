@@ -48,7 +48,7 @@ For AWS run below
 ```
 For Azure run below
 ```sh
-./get-azure-inventory.ps
+./get-azure-inventory.sh
 ```
 
 ## Support  

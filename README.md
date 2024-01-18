@@ -23,7 +23,7 @@ The scripts here provides customer a way to scan their cloud objects in AWS and 
 ### Scripts  
 
 - [get-aws-inventory](get-aws-inventory.sh)
-- [get-azure-inventory](get-azure-inventory.ps)
+- [get-azure-inventory](get-azure-inventory.sh)
 
 ### Requirements  
 

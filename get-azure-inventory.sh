@@ -31,8 +31,11 @@ echo "Virtual Machines: $vm_count"
 total_vms=$((total_vms + vm_count))
 
 sql_count=$(az resource list --resource-type "Microsoft.Sql/servers" --query "[].{Name:name}" --output tsv | wc -l)
-echo "Cloud Databases:	$sql_count"
-total_sqs=$((total_sqs + sql_count))
+echo "SQL Databases:	$sql_count"
+
+cosmosdb_count=$(az resource list --resource-type "Microsoft.DocumentDB/databaseAccounts" --query "[].{Name:name}" --output tsv | wc -l)
+echo "Cosmos Databases:  $cosmosdb_count"
+total_sqs=$((total_sqs + sql_count + cosmosdb_count))
 
 function_count=$(az resource list --resource-type Microsoft.Web/sites --query "[?type=='Microsoft.Web/sites' && contains(name, 'functionapp')]" --output tsv | wc -l)
 echo "Serverless Functions: $function_count"

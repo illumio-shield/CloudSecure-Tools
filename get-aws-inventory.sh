@@ -31,25 +31,25 @@ for profile in $profiles; do
 
 # List all AWS regions using AWS CLI
 regions=$(aws ec2 describe-regions --output json | jq -r '.Regions[].RegionName')
-
+printf "%-20s %-20s %-20s %-20s %-20s %-20s\n" "region" "virtualMachines" "cloudDatabases" "serverlessFunctions" "containerHosts" "serverlessContainers"
 # Iterate through each region
 for region in $regions; do
-    echo "Region: $region"
+   # echo "Region: $region"
 
     # List EC2 instances and count
     ec2_count=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].InstanceType' --output text --region $region | wc -w)
     total_ec2=$((total_ec2 + ec2_count))
     #echo "Virtual Machines:\t\t$ec2_count"
-    printf "Virtual Machines:\t\t$ec2_count\n"
+    #printf "Virtual Machines:\t\t$ec2_count\n"
     # List RDS instances and count
     rds_count=$(aws rds describe-db-instances --query 'DBInstances[].DBInstanceIdentifier' --output text --region $region | wc -w)
     total_rds=$((total_rds + rds_count))
-    printf "Cloud Databases:\t\t$rds_count\n"
+    #printf "Cloud Databases:\t\t$rds_count\n"
 
     # List Lambda functions and count
     lambda_count=$(aws lambda list-functions --query 'Functions[].FunctionName' --output text --region $region | wc -w)
     total_lambda=$((total_lambda + lambda_count))
-    printf "Serverless Functions:\t\t$lambda_count\n"
+    #printf "Serverless Functions:\t\t$lambda_count\n"
 
     # List EKS clusters and count
     eks_clusters=$(aws eks list-clusters --output json --region $region | jq -r '.clusters[]')
@@ -68,12 +68,16 @@ for region in $regions; do
     total_pods=$((total_pods + eks_pod_count))
     total_nodes=$((total_nodes + eks_node_count))
 
-    printf "Container Hosts:\t\t\t$eks_cluster_count\n"
-    printf "Serverless Containers:\t\t\t$fargate_count\n"
-    echo "-----------------------"
+    #printf "Container Hosts:\t\t\t$eks_cluster_count\n"
+    #printf "Serverless Containers:\t\t\t$fargate_count\n"
+    printf "%-20s %-20s %-20s %-20s %-20s %-20s\n" "$region" "$ec2_count" "$rds_count" "$lambda_count" "$eks_cluster_count" "$fargate_count"
+    #echo "-----------------------"
 done
 done
 # Display summary
+
+
+
 echo "Summary Across All Regions:"
 echo "-----------------------"
 echo "Total Virtual Machines: $total_ec2"

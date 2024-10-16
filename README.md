@@ -38,7 +38,12 @@ For using Azure script, please login to your Azure account:
 ```
 az login
 ```
+For using OCI script please craete profile and set up below environment variable.
+```
+oci setup config
 
+export COMPARTMENT_ID="ocid1.compartment.oci1...."
+```
 ## Usage  
 
 ### Using cripts 
@@ -50,7 +55,10 @@ For Azure run below
 ```sh
 ./get-azure-inventory.sh
 ```
-
+For OCI run below
+```sh
+./get-oci-inventory.sh
+```
 ## Support  
 
 The `illumio.cloudsecure` collection is released and distributed as open source software subject to the included [LICENSE](LICENSE). Illumio has no obligation or responsibility related to the package with respect to support, maintenance, availability, security or otherwise. Please read the entire [LICENSE](LICENSE) for additional information regarding the permissions and limitations. Support is offered on a best-effort basis through the [Illumio Cloudsecure team](mailto:cloudsecure@illumio.com) and project contributors.  

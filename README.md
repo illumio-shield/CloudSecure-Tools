@@ -44,6 +44,13 @@ oci setup config
 
 export COMPARTMENT_ID="ocid1.compartment.oci1...."
 ```
+
+For GCP script, please login to your GCP account:
+
+```
+gcloud auth login
+```
+
 ## Usage  
 
 ### Using cripts 
@@ -58,6 +65,10 @@ For Azure run below
 For OCI run below
 ```sh
 ./get-oci-inventory.sh
+```
+For GCP run below
+```sh
+./get-gcp-inventory.sh
 ```
 ## Support  
 

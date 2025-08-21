@@ -38,7 +38,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub 'arn:aws:iam::${TrustedAccountId}:user/root'
+              AWS: !Sub 'arn:aws:iam::${TrustedAccountId}:root'
             Action: 'sts:AssumeRole'
             Condition:
               StringEquals:

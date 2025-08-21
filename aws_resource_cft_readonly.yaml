@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Illumio Resource Counter Role (StackSet-ready, read-only)
+  Deploy this role across all accounts in your organization for resource counting.
+
+Parameters:
+  TrustedAccountId:
+    Type: String
+    Description: AWS account ID of the management account that will assume this role (your organization's account ID)
+    AllowedPattern: '^[0-9]{12}$'
+    ConstraintDescription: Must be a 12-digit AWS account ID
+
+  ExternalId:
+    Type: String
+    Description: External ID for secure cross-account assumption
+    MinLength: 8
+    MaxLength: 128
+    NoEcho: true
+    ConstraintDescription: External ID must be between 8 and 128 characters
+
+  RoleName:
+    Type: String
+    Description: Name of the IAM role to create
+    Default: IllumioResourceCounterRole
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-_]{0,63}$'
+    ConstraintDescription: Must be a valid IAM role name
+
+Resources:
+  IllumioCounterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      Description: >
+        Cross-account read-only role for Illumio resource counting.
+        Assumable by management account with ExternalId.
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${TrustedAccountId}:user/root'
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref ExternalId
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+      Tags:
+        - Key: Purpose
+          Value: IllumioResourceCounting
+        - Key: ManagedBy
+          Value: StackSet
+        - Key: ExternalIdRequired
+          Value: 'true'
+
+Outputs:
+  RoleArn:
+    Description: ARN of the created role
+    Value: !GetAtt IllumioCounterRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-RoleArn'
+
+  RoleName:
+    Description: Name of the created role
+    Value: !Ref RoleName
+    Export:
+      Name: !Sub '${AWS::StackName}-RoleName'
+
+  TrustedAccount:
+    Description: Account ID trusted to assume this role
+    Value: !Ref TrustedAccountId
+    Export:
+      Name: !Sub '${AWS::StackName}-TrustedAccount'
+
+  Instructions:
+    Description: How to use this role with the Illumio resource counter script
+    Value: !Sub |
+      Run the resource counter script from account ${TrustedAccountId} with:
+      ./aws_resource_count.sh --scope org:YOUR_ORG_ID --role-name ${RoleName} --external-id YOUR_EXTERNAL_ID

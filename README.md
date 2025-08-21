@@ -1,86 +1,14 @@
-# Cloudsecure helper tools - illumio.cloudsecure  
+# Cloudsecure Helper Tools - illumio.cloudsecure
 
+Welcome to the Cloudsecure Helper Tools repository. For detailed instructions on downloading and running the scripts to scan your cloud objects in AWS, Azure, and GCP, please refer to the [Using the Illumio Workload Count Script PDF](Using_the_Illumio_Workload_Count_Script.pdf).
 
-- [Overview](#overview)
-- [Contents](#contents)
-    - [Scripts](#modules)
-- [Installation](#installation)
-    - [Requirements](#requirements)
-    - [Ansible Galaxy](#ansible-galaxy)
-- [Usage](#usage)
-    - [Using illumio scripts](#using-illumio-scripts)
-- [Support](#support)
-- [Contributing](#contributing)
-- [License](#license)
+## Support
 
-## Overview  
+The `illumio.cloudsecure` collection is released and distributed as open source software subject to the included [LICENSE](LICENSE). Illumio has no obligation or responsibility related to the package with respect to support, maintenance, availability, security or otherwise. Please read the entire [LICENSE](LICENSE) for additional information regarding the permissions and limitations. Support is offered on a best-effort basis through the [Illumio Cloudsecure team](mailto:cloudsecure@illumio.com) and project contributors.
 
-This repository contains the customer helper scripts for `illumio.cloudsecure`.  
+## License
 
-The scripts here provides customer a way to scan their cloud objects in AWS and Azure. Scripts use CLI provided by AWS and Azure.
-## Contents  
-
-### Scripts  
-
-- [get-aws-inventory](get-aws-inventory.sh)
-- [get-azure-inventory](get-azure-inventory.sh)
-
-### Requirements  
-
-Customer should have all AWS account information in .aws/config and .aws/credentials, as required to run aws cofigure.
-
-```
-export AWS_CONFIG_PATH=~./aws
-```
-
-For using Azure script, please login to your Azure account:
-
-```
-az login
-```
-For using OCI script please craete profile and set up below environment variable.
-```
-oci setup config
-
-export COMPARTMENT_ID="ocid1.compartment.oci1...."
-```
-
-For GCP script, please login to your GCP account:
-
-```
-gcloud auth login
-```
-
-## Usage  
-
-### Using cripts 
-For AWS run below
-```sh
-./get-aws-inventory.sh
-```
-For Azure run below
-```sh
-./get-azure-inventory.sh
-```
-For OCI run below
-```sh
-./get-oci-inventory.sh
-```
-For GCP run below
-```sh
-./get-gcp-inventory.sh
-```
-## Support  
-
-The `illumio.cloudsecure` collection is released and distributed as open source software subject to the included [LICENSE](LICENSE). Illumio has no obligation or responsibility related to the package with respect to support, maintenance, availability, security or otherwise. Please read the entire [LICENSE](LICENSE) for additional information regarding the permissions and limitations. Support is offered on a best-effort basis through the [Illumio Cloudsecure team](mailto:cloudsecure@illumio.com) and project contributors.  
-
-## Contributing  
-
-See the project's [CONTRIBUTING](.github/CONTRIBUTING.md) document for details.  
-
-## License  
-
-Copyright 2022 Illumio  
+Copyright 2022 Illumio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

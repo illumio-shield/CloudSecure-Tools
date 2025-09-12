@@ -929,6 +929,11 @@ print_help() {
     "     --role IllumioResourceCounterRole \\" \
     "     --external-id my-secure-external-id" \
     "" \
+    "  # Using StackSet-deployed custom role with external ID for a single account" \
+    "  $0 --scope account:123456789012 \\" \
+    "     --role IllumioResourceCounterRole \\" \
+    "     --external-id my-secure-external-id" \
+    "" \
     "${BOLD}PREREQUISITES:${RESET}" \
     "  • AWS CLI installed and authenticated" \
     "  • jq utilities installed" \

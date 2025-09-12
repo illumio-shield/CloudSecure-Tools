@@ -1224,10 +1224,10 @@ ${BOLD}EXAMPLES:${RESET}
   $0 --scope subscription:12345678-1234-1234-1234-123456789012
 
   # Scan all subscriptions in tenant
-  $0 --scope tenant:default
+  $0 --scope tenant:12345678-1234-1234-1234-123456789012
 
   # Scan with verbose output
-  $0 --scope tenant:default --verbose
+  $0 --scope tenant:12345678-1234-1234-1234-123456789012 --verbose
 
 ${BOLD}PREREQUISITES:${RESET}
   • Azure CLI installed and authenticated (az login)

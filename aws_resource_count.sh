@@ -825,7 +825,9 @@ print_summary() {
   # Format label based on scope
   if [[ "$scope" =~ ^org:(.+)$ ]]; then
     label="AWS Organization: ${BASH_REMATCH[1]}"
-  elif [[ "$scope" =~ ^account:(.+)$ ]]; then
+  elif [[ "$scope" =~ ^account:([0-9]{12})(,[0-9]{12})+$ ]]; then
+    label="Custom Account Set"
+  elif [[ "$scope" =~ ^account:([0-9]{12})$ ]]; then
     label="AWS Account: ${BASH_REMATCH[1]}"
   fi
   
@@ -909,8 +911,9 @@ print_help() {
     "" \
     "${BOLD}REQUIRED:${RESET}" \
     "  --scope <scope>    Specify the AWS scope to scan:" \
-    "                     • account:<ACCOUNT_ID>  - Single account" \
-    "                     • org:<ORG_ID>          - All accounts in organization" \
+    "                     • account:<ACCOUNT_ID>          - Single account ID" \
+    "                     • account:<A1,A2,...,A11,...>   - Comma-separated account IDs" \
+    "                     • org:<ORG_ID>                  - All accounts in organization" \
     "" \
     "  --role <name>      Cross-account role name" \
     "" \
@@ -933,6 +936,10 @@ print_help() {
     "  $0 --scope account:123456789012 \\" \
     "     --role IllumioResourceCounterRole \\" \
     "     --external-id my-secure-external-id" \
+    "" \
+    "  # Scanning a custom set of accounts (comma-separated list via account:)" \
+    "  $0 --scope account:111111111111,222222222222,333333333333 \\" \
+    "     --role OrganizationAccountAccessRole" \
     "" \
     "${BOLD}PREREQUISITES:${RESET}" \
     "  • AWS CLI installed and authenticated" \
@@ -1002,10 +1009,9 @@ main() {
     "Use --role OrganizationAccountAccessRole (default) or --role YourCustomRole"
   fi
   
-  # Validate scope format
   if ! [[ "$scope" =~ ^(account|org):(.+)$ ]]; then
     error_exit "Invalid scope format: $scope" \
-    "Use format: account:<ID> or org:<ID>"
+    "Use format: account:<ID> or account:<ID1,ID2,...> | org:<ID>"
   fi
   
   # Set role configuration based on role name
@@ -1044,6 +1050,13 @@ main() {
   if [[ "$scope" =~ ^account:([0-9]{12})$ ]]; then
     accounts="${BASH_REMATCH[1]}"
     info "Scanning single account: ${BASH_REMATCH[1]}"
+  elif [[ "$scope" =~ ^account:([0-9]{12})(,[0-9]{12})+$ ]]; then
+    # Parse comma-separated list of account IDs after 'account:'
+    raw_list="${scope#account:}"
+    accounts=$(echo "$raw_list" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -E '^[0-9]{12}$' || true)
+    [[ -z "$accounts" ]] && error_exit "No valid 12-digit account IDs found in list" \
+      "Provide --scope account:<A1,A2,...> where each account ID is 12 digits"
+    info "Scanning custom account set: $accounts"
   elif [[ "$scope" =~ ^org:(.+)$ ]]; then
     progress "Fetching accounts from organization..."
     accounts=$(get_accounts_from_org "${BASH_REMATCH[1]}")
@@ -1051,7 +1064,7 @@ main() {
       "Ensure you have organizations:ListAccounts permission"
   else
     error_exit "Invalid scope format" \
-    "Use --scope account:123456789012 or --scope org:123456789012"
+    "Use --scope account:123456789012 or --scope account:123456789012,123456789013,... or --scope org:123456789012"
   fi
   
   # Convert to array

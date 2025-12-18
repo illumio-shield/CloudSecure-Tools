@@ -837,61 +837,50 @@ print_summary() {
   echo "╚══════════════════════════════════════════════════════════╝"
   echo
   
-  # Insights Workloads
-  echo -e "${BOLD}${BLUE} 🔍 Illumio Insights Workloads (IWL)${RESET}"
+  echo -e "${BOLD}${BLUE} ☁️  Illumio Workloads${RESET}"
   echo "────────────────────────────────────────────────────────────────"
-  printf "${BOLD}%-40s %-10s %-10s${RESET}\n" "Resource Type" "Count" "IWL"
+  printf "${BOLD}%-40s %-10s %-10s${RESET}\n" "Resource Type" "Count" "Workloads"
   echo "────────────────────────────────────────────────────────────────"
   
-  local total_insights_resources=0
-  for rt in "${INSIGHTS_RESOURCE_TYPES[@]}"; do
+  local total_resources=0
+  local total_workloads=0
+  
+  # Define the 4 main categories
+  local categories=("Cloud Database" "Cloud Virtual Machine" "Cloud Container" "Network Security & Management")
+  
+  for rt in "${categories[@]}"; do
+    # Get count - use Insights count as base
     local count=${GLOBAL_INSIGHTS_COUNTS[$rt]:-0}
-    total_insights_resources=$((total_insights_resources + count))
     
+    # If count is 0, check segmentation counts
+    if [[ $count -eq 0 ]]; then
+        count=${GLOBAL_SEGMENTATION_COUNTS[$rt]:-0}
+    fi
+    
+    total_resources=$((total_resources + count))
+    
+    # Get ratio - use 'iw' as default since they are same
     local ratio=$(get_workload_ratio "$rt" iw)
     local workload=0
-    [[ $(echo "$ratio" | awk '{print ($1 > 0) ? 1 : 0}' 2>/dev/null) -eq 1 ]] && \
-      workload=$(echo "$count $ratio" | awk '{printf "%.2f", $1 * $2}')
     
+    # Calculate workload
     if [[ $count -gt 0 ]]; then
-      printf "%-40s %-10d %-10s\n" "$rt" "$count" "$workload"
+        # Use awk for float calculation
+        workload=$(echo "$count $ratio" | awk '{printf "%.2f", $1 * $2}')
+        
+        # Add to total workload
+        total_workloads=$(echo "$total_workloads $workload" | awk '{print $1 + $2}')
+        
+        printf "%-40s %-10d %-10s\n" "$rt" "$count" "$workload"
     fi
   done
   
-  local workloads=$(calculate_workloads)
-  IFS=':' read -r total_iw total_sw <<< "$workloads"
+  # Round up total workload
+  total_workloads=$(echo "$total_workloads" | awk '{print int($1+0.999)}')
   
   echo "────────────────────────────────────────────────────────────────"
-  printf "${BOLD}%-40s %-10s ${GREEN}%-10s${RESET}\n" "TOTAL" "$total_insights_resources" "$total_iw IWLs"
+  printf "${BOLD}%-40s %-10s ${GREEN}%-10s${RESET}\n" "TOTAL" "$total_resources" "$total_workloads"
   echo
-  
-  # Segmentation Workloads  
-  local total_seg_resources=0
-  for rt in "${SEGMENTATION_RESOURCE_TYPES[@]}"; do
-    total_seg_resources=$((total_seg_resources + ${GLOBAL_SEGMENTATION_COUNTS[$rt]:-0}))
-  done
-  
-  if [[ $total_seg_resources -gt 0 ]]; then
-    echo -e "${BOLD}${BLUE} 🔐 Illumio Segmentation Workloads (SWL)${RESET}"
-    echo "────────────────────────────────────────────────────────────────"
-    printf "${BOLD}%-40s %-10s %-10s${RESET}\n" "Resource Type" "Count" "SWL"
-    echo "────────────────────────────────────────────────────────────────"
-    
-    for rt in "${SEGMENTATION_RESOURCE_TYPES[@]}"; do
-      local count=${GLOBAL_SEGMENTATION_COUNTS[$rt]:-0}
-      [[ $count -eq 0 ]] && continue
-      
-      local ratio=$(get_workload_ratio "$rt" sw)
-      local workload=0
-      [[ $(echo "$ratio" | awk '{print ($1 > 0) ? 1 : 0}' 2>/dev/null) -eq 1 ]] && \
-        workload=$(echo "$count $ratio" | awk '{printf "%.2f", $1 * $2}')
-      
-      printf "%-40s %-10d %-10s\n" "$rt" "$count" "$workload"
-    done
-    
-    echo "────────────────────────────────────────────────────────────────"
-    printf "${BOLD}%-40s %-10s ${GREEN}%-10s${RESET}\n" "TOTAL" "$total_seg_resources" "$total_sw SWLs"
-  fi 
 }
 
 # Get accounts from organization

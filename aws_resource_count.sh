@@ -846,7 +846,7 @@ print_summary() {
   local total_workloads=0
   
   # Define the 4 main categories
-  local categories=("Cloud Database" "Cloud Virtual Machine" "Cloud Container" "Network Security & Management")
+  local categories=("Cloud Database" "Cloud Virtual Machine" "Cloud Container" "Other Network Interface")
   
   for rt in "${categories[@]}"; do
     # Get count - use Insights count as base

@@ -1139,69 +1139,64 @@ print_summary() {
   echo "╚═══════════════════════════════════════════════════════════╝"
   echo
   
-  # Insights Workloads
-  echo -e "${BOLD}${BLUE} 🔍 Illumio Insights Workloads (IWL)${RESET}"
+  echo -e "${BOLD}${BLUE} ☁️  Illumio Workloads${RESET}"
   echo "────────────────────────────────────────────────────────────────"
-  printf "${BOLD}%-40s %-10s %-10s${RESET}\n" "Resource Type" "Count" "IWL"
+  printf "${BOLD}%-40s %-10s %-10s${RESET}\n" "Resource Type" "Count" "Workloads"
   echo "────────────────────────────────────────────────────────────────"
   
-  local total_insights_resources=0
-  for i in "${!INSIGHTS_RESOURCE_TYPES[@]}"; do
-    local rt=${INSIGHTS_RESOURCE_TYPES[$i]}
-    local count=${INSIGHTS_COUNTS_AGGREGATE[$i]}
-    local ratio=$(get_workload_ratio "$rt" iw)
-    local workload=0
+  local total_resources=0
+  local total_workloads=0
+  
+  # Define the 4 main categories
+  local categories=("Cloud Database" "Cloud Virtual Machine" "Cloud Container" "Other Network Interface")
+  
+  for cat in "${categories[@]}"; do
+    local count=0
     
-    total_insights_resources=$((total_insights_resources + count))
-    
-    ratio=$(echo "$ratio" | tr -d '[:space:]')
-    if [[ -n "$ratio" && "$ratio" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-      if [[ $(awk -v val="$ratio" 'BEGIN {print (val > 0) ? 1 : 0}') -eq 1 ]]; then
-        workload=$(awk -v count="$count" -v ratio="$ratio" 'BEGIN {printf "%.2f", count * ratio}')
+    # Find index of this category in INSIGHTS_RESOURCE_TYPES
+    for i in "${!INSIGHTS_RESOURCE_TYPES[@]}"; do
+      if [[ "${INSIGHTS_RESOURCE_TYPES[$i]}" == "$cat" ]]; then
+        count=${INSIGHTS_COUNTS_AGGREGATE[$i]}
+        break
       fi
+    done
+    
+    # If not found in insights, check segmentation
+    if [[ $count -eq 0 ]]; then
+        for i in "${!SEGMENTATION_RESOURCE_TYPES[@]}"; do
+          if [[ "${SEGMENTATION_RESOURCE_TYPES[$i]}" == "$cat" ]]; then
+            count=${SEGMENTATION_COUNTS_AGGREGATE[$i]}
+            break
+          fi
+        done
     fi
     
+    total_resources=$((total_resources + count))
+    
+    # Get ratio
+    local ratio=$(get_workload_ratio "$cat" iw)
+    local workload=0
+    
     if [[ $count -gt 0 ]]; then
-      printf "%-40s %-10s %-10s\n" "$rt" "$count" "$workload"
+        ratio=$(echo "$ratio" | tr -d '[:space:]')
+        if [[ -n "$ratio" && "$ratio" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+             if [[ $(awk -v val="$ratio" 'BEGIN {print (val > 0) ? 1 : 0}') -eq 1 ]]; then
+                workload=$(awk -v count="$count" -v ratio="$ratio" 'BEGIN {printf "%.2f", count * ratio}')
+             fi
+        fi
+        
+        # Add to total workload
+        total_workloads=$(awk -v total="$total_workloads" -v current="$workload" 'BEGIN {print total + current}')
+        
+        printf "%-40s %-10s %-10s\n" "$cat" "$count" "$workload"
     fi
   done
   
-  local w=$(calculate_workloads)
-  IFS=':' read -r total_iw total_sw <<< "$w"
+  # Round up total workload
+  total_workloads=$(echo "$total_workloads" | awk '{print int($1+0.999)}')
   
   echo "────────────────────────────────────────────────────────────────"
-  printf "${BOLD}%-40s %-10s ${GREEN}%-10s${RESET}\n" "TOTAL" "$total_insights_resources" "$total_iw IWLs"
-  echo
-  
-  # Segmentation Workloads
-  echo -e "${BOLD}${BLUE} 🛡 Illumio Segmentation Workloads (SWL)${RESET}"
-  echo "────────────────────────────────────────────────────────────────"
-  printf "${BOLD}%-40s %-10s %-10s${RESET}\n" "Resource Type" "Count" "SWL"
-  echo "────────────────────────────────────────────────────────────────"
-  
-  local total_segmentation_resources=0
-  for i in "${!SEGMENTATION_RESOURCE_TYPES[@]}"; do
-    local rt=${SEGMENTATION_RESOURCE_TYPES[$i]}
-    local count=${SEGMENTATION_COUNTS_AGGREGATE[$i]}
-    local ratio=$(get_workload_ratio "$rt" sw)
-    local workload=0
-    
-    total_segmentation_resources=$((total_segmentation_resources + count))
-    
-    ratio=$(echo "$ratio" | tr -d '[:space:]')
-    if [[ -n "$ratio" && "$ratio" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-      if [[ $(awk -v val="$ratio" 'BEGIN {print (val > 0) ? 1 : 0}') -eq 1 ]]; then
-        workload=$(awk -v count="$count" -v ratio="$ratio" 'BEGIN {printf "%.2f", count * ratio}')
-      fi
-    fi
-    
-    if [[ $count -gt 0 ]]; then
-      printf "%-40s %-10s %-10s\n" "$rt" "$count" "$workload"
-    fi
-  done
-  
-  echo "────────────────────────────────────────────────────────────────"
-  printf "${BOLD}%-40s %-10s ${GREEN}%-10s${RESET}\n" "TOTAL" "$total_segmentation_resources" "$total_sw SWLs"
+  printf "${BOLD}%-40s %-10s ${GREEN}%-10s${RESET}\n" "TOTAL" "$total_resources" "$total_workloads"
 }
 
 print_help() {

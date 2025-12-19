@@ -1148,7 +1148,7 @@ print_summary() {
   local total_workloads=0
   
   # Define the 4 main categories
-  local categories=("Cloud Database" "Cloud Virtual Machine" "Cloud Container" "Network Security & Management")
+  local categories=("Cloud Database" "Cloud Virtual Machine" "Cloud Container" "Other Network Interface")
   
   for cat in "${categories[@]}"; do
     local count=0

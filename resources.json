@@ -43,8 +43,8 @@
       {
         "resource_name": "AWS::EC2::NetworkInterface",
         "script_resource_name": "ec2:networkinterface",
-        "resource_type": "Network Security & Management",
-        "resource_type_hyphenated": "network-security-and-management",
+        "resource_type": "Other Network Interface",
+        "resource_type_hyphenated": "other-network-interface",
         "ratio_iwl": 0.1,
         "ratio_swl": 0.1,
         "enabled_insights": true,
@@ -264,8 +264,8 @@
       {
         "resource_name": "Microsoft.Network/networkInterfaces",
         "script_resource_name": "Microsoft.Network/networkInterfaces",
-        "resource_type": "Network Security & Management",
-        "resource_type_hyphenated": "network-security-and-management",
+        "resource_type": "Other Network Interface",
+        "resource_type_hyphenated": "other-network-interface",
         "ratio_iwl": 0.1,
         "ratio_swl": 0.1,
         "enabled_insights": true,

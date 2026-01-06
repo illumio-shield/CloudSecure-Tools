@@ -197,15 +197,10 @@ CHILD_RESOURCE_TYPES=()
 PARENT_RESOURCE_TYPES=()
 
 build_container_host_tags() {
-  # Only build container host tags for child resources now
-  local tags_data=$(jq -r '.clouds.azure[] | select(.container_host_tag != null and .is_child == true) | .script_resource_name + "|" + .container_host_tag' "$RESOURCE_MAPPING_JSON")
-  while IFS='|' read -r resource_type tag_names; do
-    if [[ -n "$resource_type" && -n "$tag_names" ]]; then
-      CONTAINER_HOST_TYPES+=("$resource_type")
-      CONTAINER_HOST_TAG_NAMES+=("$tag_names")
-    fi
-  done <<< "$tags_data"
-} 
+  # Disabled: no longer distinguishing VMs as container hosts via tags
+  CONTAINER_HOST_TYPES=()
+  CONTAINER_HOST_TAG_NAMES=()
+}
 
 # Helper function to get container tag for a resource type
 get_container_tag() {
@@ -353,16 +348,9 @@ count_single_child_resource() {
       child_count=$(az aks nodepool list --cluster-name "$parent_name" --resource-group "$rg" --subscription "$subscription" --query 'length(@)' -o tsv 2>"$error_output" || echo "0")
       ;;
     "Microsoft.ContainerService/managedClusters/agentPools/machines")
-      # Get all node pools first, then count machines in each
-      local pools=$(az aks nodepool list --cluster-name "$parent_name" --resource-group "$rg" --subscription "$subscription" --query '[].name' -o tsv 2>"$error_output" || echo "")
-      local machine_count=0
-      while IFS= read -r pool_name; do
-        if [[ -n "$pool_name" ]]; then
-          local machines=$(az aks nodepool show --cluster-name "$parent_name" --name "$pool_name" --resource-group "$rg" --subscription "$subscription" --query 'count' -o tsv 2>/dev/null || echo "0")
-          machine_count=$((machine_count + machines))
-        fi
-      done <<< "$pools"
-      child_count=$machine_count
+      # Excluded from counting per new model
+      child_count=0
+      container_count=0
       ;;
     "Microsoft.ContainerService/managedClusters/privateEndpointConnections")
       # Check if cluster supports private endpoints first
@@ -1188,7 +1176,11 @@ print_summary() {
         # Add to total workload
         total_workloads=$(awk -v total="$total_workloads" -v current="$workload" 'BEGIN {print total + current}')
         
-        printf "%-40s %-10s %-10s\n" "$cat" "$count" "$workload"
+        local display_cat="$cat"
+        if [[ "$cat" == "Cloud Container" ]]; then
+          display_cat="Cloud Container Cluster"
+        fi
+        printf "%-40s %-10s %-10s\n" "$display_cat" "$count" "$workload"
     fi
   done
   

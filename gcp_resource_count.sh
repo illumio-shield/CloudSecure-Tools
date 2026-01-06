@@ -690,7 +690,11 @@ print_summary() {
         # Add to total workload
         total_workloads=$(echo "$total_workloads $workload" | awk '{print $1 + $2}')
         
-        printf "%-40s %-10s %-10s\n" "$cat" "$count" "$workload"
+        local display_cat="$cat"
+        if [[ "$cat" == "Cloud Container" ]]; then
+          display_cat="Cloud Container Cluster"
+        fi
+        printf "%-40s %-10s %-10s\n" "$display_cat" "$count" "$workload"
     fi
   done
   

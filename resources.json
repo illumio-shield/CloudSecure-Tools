@@ -205,18 +205,6 @@
         "is_child": false
       },
       {
-        "resource_name": "Microsoft.ContainerService/managedClusters/agentPools/machines",
-        "script_resource_name": "Microsoft.ContainerService/managedClusters/agentPools/machines",
-        "resource_type": "Cloud Container",
-        "resource_type_hyphenated": "cloud-container",
-        "ratio_iwl": 2,
-        "ratio_swl": 2,
-        "enabled_insights": true,
-        "enabled_segmentation": true,
-        "is_child": true,
-        "parent_type": "Microsoft.ContainerService/managedClusters/agentPools"
-      },
-      {
         "resource_name": "Microsoft.DBforPostgreSQL/flexibleServers",
         "script_resource_name": "Microsoft.DBforPostgreSQL/flexibleServers",
         "resource_type": "Cloud Database",

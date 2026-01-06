@@ -400,55 +400,7 @@ count_single_resource() {
     local count=$(echo "$output" | jq -r "$count_query" 2>/dev/null || echo "0")
   fi
   
-  # Check for container host tag on EC2 instances
-  if [[ "$resource_name" == "ec2:instance" && "$count" -gt 0 ]]; then
-    local container_tags=$(get_container_host_tag "$resource_name")
-    if [[ -n "$container_tags" ]]; then
-      # Split instances into container and non-container
-      local container_count=0
-      local vm_count=0
-      
-      # Build JQ filter for all tags
-      local tag_filters=""
-      IFS=',' read -ra TAGS <<< "$container_tags"
-      for tag in "${TAGS[@]}"; do
-        [[ -n "$tag_filters" ]] && tag_filters="$tag_filters, "
-        tag_filters="${tag_filters}(Tags[?Key==\`${tag}\`].Value | [0])"
-      done
-      
-      # Get detailed instance info with all specified tags
-      local instances_json=$(aws ec2 describe-instances --region "$region" \
-        --query "Reservations[].Instances[].[${tag_filters}]" \
-        --output json 2>/dev/null || echo "[]")
-      
-      if [[ -n "$instances_json" && "$instances_json" != "[]" ]]; then
-        while IFS= read -r line; do
-          # Check if any of the tag values are non-null
-          local is_container=false
-          for value in $(echo "$line" | jq -r '.[]'); do
-            if [[ "$value" != "null" && -n "$value" ]]; then
-              is_container=true
-              break
-            fi
-          done
-          
-          if $is_container; then
-            container_count=$((container_count + 1))
-          else
-            vm_count=$((vm_count + 1))
-          fi
-        done < <(echo "$instances_json" | jq -c '.[]')
-      else
-        vm_count=$count
-      fi
-      
-      # Store the split counts for later processing
-      echo "${vm_count}:${container_count}"
-      
-      log "VM count: $vm_count, Container count: $container_count"
-      return
-    fi
-  fi
+  # VM cluster membership special-casing removed: count all instances as VMs
   
   [[ "$count" =~ ^[0-9]+$ ]] && echo "$count" || echo "0"
 }
@@ -486,61 +438,25 @@ count_resources_for_region() {
       
       local count_result=$(count_single_resource "$resource_name" "$region")
       
-      # Check if this is a split count (VM:Container)
-      if [[ "$count_result" =~ ^([0-9]+):([0-9]+)$ ]]; then
-        local vm_count="${BASH_REMATCH[1]}"
-        local container_count="${BASH_REMATCH[2]}"
+      # Normal processing: count_result is a numeric count
+      local count="$count_result"
+      if [[ "$count" =~ ^[0-9]+$ && $count -gt 0 ]]; then
+        total_found=$((total_found + count))
+        log "  Found $count × $resource_name"
         
-        # Process VM instances
-        if [[ $vm_count -gt 0 ]]; then
-          total_found=$((total_found + vm_count))
-          log "  Found $vm_count × $resource_name (VMs)"
-          
-          # Map VMs to original resource type
-          for mapping in "${RESOURCE_MAPPING[@]}"; do
-            IFS='^' read -r res_name enabled_insights enabled_segmentation resource_type <<< "$mapping"
-            if [[ "$resource_name" == "$res_name" ]]; then
-              if [[ "$enabled_insights" == "true" ]]; then
-                local_insights_counts["$resource_type"]=$((local_insights_counts["$resource_type"] + vm_count))
-              fi
-              if [[ "$enabled_segmentation" == "true" ]]; then
-                local_segmentation_counts["$resource_type"]=$((local_segmentation_counts["$resource_type"] + vm_count))
-              fi
-              break
+        # Map to Illumio categories
+        for mapping in "${RESOURCE_MAPPING[@]}"; do
+          IFS='^' read -r res_name enabled_insights enabled_segmentation resource_type <<< "$mapping"
+          if [[ "$resource_name" == "$res_name" ]]; then
+            if [[ "$enabled_insights" == "true" ]]; then
+              local_insights_counts["$resource_type"]=$((local_insights_counts["$resource_type"] + count))
             fi
-          done
-        fi
-        
-        # Process container instances
-        if [[ $container_count -gt 0 ]]; then
-          total_found=$((total_found + container_count))
-          log "  Found $container_count × $resource_name (Container hosts)"
-          
-          # Map containers to Cloud Container type
-          local_insights_counts["Cloud Container"]=$((local_insights_counts["Cloud Container"] + container_count))
-          local_segmentation_counts["Cloud Container"]=$((local_segmentation_counts["Cloud Container"] + container_count))
-        fi
-      else
-        # Normal processing for non-split counts
-        local count="$count_result"
-        if [[ "$count" =~ ^[0-9]+$ && $count -gt 0 ]]; then
-          total_found=$((total_found + count))
-          log "  Found $count × $resource_name"
-          
-          # Map to Illumio categories
-          for mapping in "${RESOURCE_MAPPING[@]}"; do
-            IFS='^' read -r res_name enabled_insights enabled_segmentation resource_type <<< "$mapping"
-            if [[ "$resource_name" == "$res_name" ]]; then
-              if [[ "$enabled_insights" == "true" ]]; then
-                local_insights_counts["$resource_type"]=$((local_insights_counts["$resource_type"] + count))
-              fi
-              if [[ "$enabled_segmentation" == "true" ]]; then
-                local_segmentation_counts["$resource_type"]=$((local_segmentation_counts["$resource_type"] + count))
-              fi
-              break
+            if [[ "$enabled_segmentation" == "true" ]]; then
+              local_segmentation_counts["$resource_type"]=$((local_segmentation_counts["$resource_type"] + count))
             fi
-          done
-        fi
+            break
+          fi
+        done
       fi
     fi
   done
@@ -871,7 +787,11 @@ print_summary() {
         # Add to total workload
         total_workloads=$(echo "$total_workloads $workload" | awk '{print $1 + $2}')
         
-        printf "%-40s %-10d %-10s\n" "$rt" "$count" "$workload"
+        local display_rt="$rt"
+        if [[ "$rt" == "Cloud Container" ]]; then
+          display_rt="Cloud Container Cluster"
+        fi
+        printf "%-40s %-10d %-10s\n" "$display_rt" "$count" "$workload"
     fi
   done
   
